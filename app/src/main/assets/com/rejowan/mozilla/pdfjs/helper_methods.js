@@ -664,6 +664,8 @@ function removeSinglePageArrangement() {
 function limitScroll(maxSpeed = 100, flingThreshold = 0.5, canFling = false, adaptiveFling = false) {
     if (!viewerContainer) return;
 
+    let touchStartX = 0;
+    let touchStartY = 0;
     let lastTouchX = 0;
     let lastTouchY = 0;
     let lastTouchTime = 0;
@@ -688,8 +690,10 @@ function limitScroll(maxSpeed = 100, flingThreshold = 0.5, canFling = false, ada
     const touchStartHandler = (event) => {
         if (event.touches.length > 1) return;
 
-        lastTouchX = event.touches[0].clientX;
-        lastTouchY = event.touches[0].clientY;
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+        lastTouchX = touchStartX;
+        lastTouchY = touchStartY;
         lastTouchTime = event.timeStamp;
         PDFViewerApplication._touchStartCurrentPage = PDFViewerApplication.page;
 
@@ -732,52 +736,102 @@ function limitScroll(maxSpeed = 100, flingThreshold = 0.5, canFling = false, ada
         if (!isDragging) return;
 
         const touchEndTime = event.timeStamp;
-        const timeElapsed = touchEndTime - lastTouchTime;
-
+        const timeElapsed = Math.max(touchEndTime - lastTouchTime, 1);
+        // Instantaneous velocity (pixels/ms)
         const velocityX = accumulatedDeltaX / timeElapsed;
         const velocityY = accumulatedDeltaY / timeElapsed;
 
-        const isVerticalScroll = PDFViewerApplication.pdfViewer.scrollMode == ScrollMode.VERTICAL;
-        const isHorizontalScroll = PDFViewerApplication.pdfViewer.scrollMode == ScrollMode.HORIZONTAL;
+        // Total gesture displacement from start
+        // totalDeltaX > 0 → swipe left (forward in horizontal mode)
+        // totalDeltaY > 0 → swipe up   (forward in vertical mode)
+        const totalDeltaX = touchStartX - lastTouchX;
+        const totalDeltaY = touchStartY - lastTouchY;
+
+        const isVerticalScroll   = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.VERTICAL;
+        const isHorizontalScroll = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.HORIZONTAL;
 
         const containerHeight = viewerContainer.clientHeight;
-        const containerWidth = viewerContainer.clientWidth;
+        const containerWidth  = viewerContainer.clientWidth;
 
-        let targetPage = PDFViewerApplication.pdfViewer.getPageView(PDFViewerApplication._touchStartCurrentPage - 1);
+        let targetPage = PDFViewerApplication.pdfViewer.getPageView(
+            PDFViewerApplication._touchStartCurrentPage - 1
+        );
         const pageHeight = targetPage.div.clientHeight;
-        const pageWidth = targetPage.div.clientWidth;
+        const pageWidth  = targetPage.div.clientWidth;
 
-        const canFlingPage = adaptiveFling ? pageWidth < containerWidth || pageHeight < containerHeight : canFling;
+        const canFlingPage = adaptiveFling
+            ? (pageWidth < containerWidth || pageHeight < containerHeight)
+            : canFling;
 
         event.preventDefault();
 
-        if (canFlingPage && isHorizontalScroll && Math.abs(velocityX) > flingThreshold && Math.abs(velocityX) > Math.abs(velocityY)) {
-            if (velocityX > 0) {
-                setScrollToNextPage();
+        // ─── HORIZONTAL MODE ─────────────────────────────────────────────────
+        // Identical behaviour to ArrowRight / ArrowLeft keys
+        if (isHorizontalScroll) {
+            const absVX = Math.abs(velocityX);
+            const absVY = Math.abs(velocityY);
+
+            if (absVX >= absVY) {
+                if (canFlingPage && absVX > flingThreshold) {
+                    // velocityX > 0 → swipe left  → next page     (= ArrowRight)
+                    // velocityX < 0 → swipe right → previous page (= ArrowLeft)
+                    if (velocityX > 0) setScrollToNextPage();
+                    else               setScrollToPreviousPage();
+                    return;
+                }
+                // Position threshold: > 20% of container width → change page
+                const threshold = containerWidth * 0.2;
+                if (totalDeltaX > threshold) {
+                    setScrollToNextPage();
+                } else if (totalDeltaX < -threshold) {
+                    setScrollToPreviousPage();
+                } else {
+                    setScrollToCurrentPage();
+                    restoreTimer = setTimeout(restoreSnap, 500);
+                }
             } else {
-                setScrollToPreviousPage();
+                // Predominantly vertical gesture ignored in horizontal mode
+                setScrollToCurrentPage();
+                restoreTimer = setTimeout(restoreSnap, 500);
             }
-        } else if (canFlingPage && isVerticalScroll && Math.abs(velocityY) > flingThreshold && Math.abs(velocityY) > Math.abs(velocityX)) {
-            if (velocityY > 0) {
-                setScrollToNextPage();
-            } else {
-                setScrollToPreviousPage();
-            }
-        } else if (isVerticalScroll && viewerContainer.scrollTop > targetPage.div.offsetTop + (targetPage.div.clientWidth * 4) / 5) {
-            setScrollToNextPage();
-        } else if (isVerticalScroll && viewerContainer.scrollTop < targetPage.div.offsetTop - (containerHeight * 2) / 4) {
-            setScrollToPreviousPage();
-        } else if (isHorizontalScroll && viewerContainer.scrollLeft > targetPage.div.offsetLeft + (targetPage.div.clientWidth * 4) / 5) {
-            setScrollToNextPage();
-        } else if (isHorizontalScroll && viewerContainer.scrollLeft < targetPage.div.offsetLeft - (containerHeight * 2) / 4) {
-            setScrollToPreviousPage();
-        } else if (setScrollToCurrentPage()) {
-            restoreTimer = setTimeout(() => {
-                restoreSnap();
-            }, 500);
-        } else {
-            //restoreSnap();
+            return;
         }
+
+        // ─── VERTICAL MODE ───────────────────────────────────────────────────
+        // Identical behaviour to ArrowDown / ArrowUp keys
+        if (isVerticalScroll) {
+            const absVX = Math.abs(velocityX);
+            const absVY = Math.abs(velocityY);
+
+            if (absVY >= absVX) {
+                if (canFlingPage && absVY > flingThreshold) {
+                    // velocityY > 0 → swipe up   → next page     (= ArrowDown)
+                    // velocityY < 0 → swipe down → previous page (= ArrowUp)
+                    if (velocityY > 0) setScrollToNextPage();
+                    else               setScrollToPreviousPage();
+                    return;
+                }
+                // Position threshold: > 20% of container height → change page
+                const threshold = containerHeight * 0.2;
+                if (totalDeltaY > threshold) {
+                    setScrollToNextPage();
+                } else if (totalDeltaY < -threshold) {
+                    setScrollToPreviousPage();
+                } else {
+                    setScrollToCurrentPage();
+                    restoreTimer = setTimeout(restoreSnap, 500);
+                }
+            } else {
+                // Predominantly horizontal gesture ignored in vertical mode
+                setScrollToCurrentPage();
+                restoreTimer = setTimeout(restoreSnap, 500);
+            }
+            return;
+        }
+
+        // ─── OTHER MODES (PAGE, WRAPPED, etc.) ───────────────────────────────
+        setScrollToCurrentPage();
+        restoreTimer = setTimeout(restoreSnap, 500);
     };
 
     const resizeAndScaleListener = () => {
@@ -790,7 +844,12 @@ function limitScroll(maxSpeed = 100, flingThreshold = 0.5, canFling = false, ada
     window.addEventListener("resize", resizeAndScaleListener);
     PDFViewerApplication.eventBus.on("scalechanging", resizeAndScaleListener);
 
-    viewerContainer._scrollHandlers = { touchStartHandler, touchMoveHandler, touchEndHandler, resizeAndScaleListener };
+    viewerContainer._scrollHandlers = {
+        touchStartHandler,
+        touchMoveHandler,
+        touchEndHandler,
+        resizeAndScaleListener,
+    };
 }
 
 function removeScrollLimit() {
