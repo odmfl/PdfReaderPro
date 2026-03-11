@@ -727,6 +727,7 @@
     <string name="left_align">Left</string>
     <string name="center_align">Center</string>
     <string name="right_align">Right</string>
+    <string name="center_both_align">Center Both</string>
     <string name="option_selected">Selected</string>
     <string name="snap_to_page">Snap to Page</string>
     <string name="snap_to_page_desc">Automatically align to page boundaries</string>
@@ -962,6 +963,7 @@
     <string name="align_pages_left">Align pages to left</string>
     <string name="center_pages">Center pages</string>
     <string name="align_pages_right">Align pages to right</string>
+    <string name="center_both_pages">Center pages both horizontally and vertically</string>
     <string name="initial_zoom">Initial zoom when opening PDFs</string>
     <string name="show_entire_page">Show entire page</string>
     <string name="match_width">Match page width to screen</string>

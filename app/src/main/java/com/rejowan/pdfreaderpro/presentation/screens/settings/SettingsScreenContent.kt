@@ -73,6 +73,7 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material.icons.rounded.AspectRatio
+import androidx.compose.material.icons.rounded.CropFree
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.ZoomIn
@@ -518,7 +519,8 @@ fun SettingsScreenContent(
             options = listOf(
                 PickerOption(Icons.AutoMirrored.Rounded.FormatAlignLeft, stringResource(R.string.left), stringResource(R.string.align_pages_left)),
                 PickerOption(Icons.Rounded.FormatAlignCenter, stringResource(R.string.center), stringResource(R.string.center_pages)),
-                PickerOption(Icons.AutoMirrored.Rounded.FormatAlignRight, stringResource(R.string.right), stringResource(R.string.align_pages_right))
+                PickerOption(Icons.AutoMirrored.Rounded.FormatAlignRight, stringResource(R.string.right), stringResource(R.string.align_pages_right)),
+                PickerOption(Icons.Rounded.CropFree, stringResource(R.string.center_both_align), stringResource(R.string.center_both_pages))
             ),
             selectedIndex = PageAlignment.entries.indexOf(preferences.readerPageAlignment),
             onSelect = { index ->
