@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
+import androidx.compose.material.icons.rounded.CropFree
 import androidx.compose.material.icons.rounded.FormatAlignCenter
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.SwapHoriz
@@ -393,6 +394,14 @@ private fun ViewModeSheetContent(
                 modifier = Modifier.weight(1f),
                 animationDelay = 400
             )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             AlignmentChip(
                 icon = Icons.AutoMirrored.Rounded.FormatAlignRight,
                 label = stringResource(R.string.right_align),
@@ -401,6 +410,15 @@ private fun ViewModeSheetContent(
                 onClick = { onPageAlignmentChange(PageAlignment.RIGHT) },
                 modifier = Modifier.weight(1f),
                 animationDelay = 450
+            )
+            AlignmentChip(
+                icon = Icons.Rounded.CropFree,
+                label = stringResource(R.string.center_both_align),
+                isSelected = currentPageAlignment == PageAlignment.CENTER_BOTH,
+                accentColor = AccentTeal,
+                onClick = { onPageAlignmentChange(PageAlignment.CENTER_BOTH) },
+                modifier = Modifier.weight(1f),
+                animationDelay = 500
             )
         }
 
@@ -413,7 +431,7 @@ private fun ViewModeSheetContent(
             isEnabled = isSnapEnabled,
             onToggle = onSnapToggle,
             accentColor = AccentTeal,
-            animationDelay = 500
+            animationDelay = 550
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -423,7 +441,7 @@ private fun ViewModeSheetContent(
             isEnabled = isAutoHideToolbar,
             onToggle = onAutoHideToolbarToggle,
             accentColor = AccentPurple,
-            animationDelay = 550
+            animationDelay = 600
         )
     }
 }

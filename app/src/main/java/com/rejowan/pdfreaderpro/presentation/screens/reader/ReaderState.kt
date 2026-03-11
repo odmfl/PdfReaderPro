@@ -78,7 +78,7 @@ data class ReaderState(
     val readingTheme: ReadingTheme = ReadingTheme.LIGHT,
 
     // Page alignment
-    val pageAlignment: PageAlignment = PageAlignment.CENTER,
+    val pageAlignment: PageAlignment = PageAlignment.CENTER_BOTH,
 
     // Auto-hide toolbar
     val autoHideToolbar: Boolean = false,
@@ -162,7 +162,8 @@ enum class ReadingTheme {
 enum class PageAlignment {
     LEFT,
     CENTER,
-    RIGHT
+    RIGHT,
+    CENTER_BOTH
 }
 
 /**

@@ -60,7 +60,7 @@ class PreferencesRepositoryImpl(
             readerBrightness = prefs[Keys.READER_BRIGHTNESS] ?: -1f,
             readerScrollDirection = prefs[Keys.READER_SCROLL_DIRECTION]?.let { ScrollDirection.valueOf(it) } ?: ScrollDirection.HORIZONTAL,
             readerPageLayout = prefs[Keys.READER_PAGE_LAYOUT]?.let { PageLayout.valueOf(it) } ?: PageLayout.CONTINUOUS,
-            readerPageAlignment = prefs[Keys.READER_PAGE_ALIGNMENT]?.let { PageAlignment.valueOf(it) } ?: PageAlignment.CENTER,
+            readerPageAlignment = prefs[Keys.READER_PAGE_ALIGNMENT]?.let { PageAlignment.valueOf(it) } ?: PageAlignment.CENTER_BOTH,
             readerAutoHideToolbar = prefs[Keys.READER_AUTO_HIDE_TOOLBAR] ?: false,
             readerQuickZoomPreset = prefs[Keys.READER_QUICK_ZOOM_PRESET]?.let { QuickZoomPreset.valueOf(it) } ?: QuickZoomPreset.FIT_WIDTH,
             readerKeepScreenOn = prefs[Keys.READER_KEEP_SCREEN_ON] ?: false,

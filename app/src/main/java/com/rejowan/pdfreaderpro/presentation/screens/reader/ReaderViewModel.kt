@@ -129,6 +129,7 @@ class ReaderViewModel(
             DomainPageAlignment.LEFT -> PageAlignment.LEFT
             DomainPageAlignment.CENTER -> PageAlignment.CENTER
             DomainPageAlignment.RIGHT -> PageAlignment.RIGHT
+            DomainPageAlignment.CENTER_BOTH -> PageAlignment.CENTER_BOTH
         }
     }
 
@@ -165,6 +166,15 @@ class ReaderViewModel(
                     DomainReadingTheme.BLACK -> "black"
                 }
                 viewer.ui.setReadingTheme(themeName)
+
+                // Apply page alignment
+                val alignMode = when (prefs.readerPageAlignment) {
+                    DomainPageAlignment.LEFT -> PdfViewer.PageAlignMode.DEFAULT
+                    DomainPageAlignment.CENTER -> PdfViewer.PageAlignMode.CENTER_HORIZONTAL
+                    DomainPageAlignment.RIGHT -> PdfViewer.PageAlignMode.DEFAULT
+                    DomainPageAlignment.CENTER_BOTH -> PdfViewer.PageAlignMode.CENTER_BOTH
+                }
+                viewer.pageAlignMode = alignMode
             } catch (e: Exception) {
                 // Viewer not yet initialized, settings will be applied when ready
             }
@@ -525,12 +535,20 @@ class ReaderViewModel(
 
             is ReaderAction.SetPageAlignment -> {
                 _state.update { it.copy(pageAlignment = action.alignment) }
+                val alignMode = when (action.alignment) {
+                    PageAlignment.LEFT -> PdfViewer.PageAlignMode.DEFAULT
+                    PageAlignment.CENTER -> PdfViewer.PageAlignMode.CENTER_HORIZONTAL
+                    PageAlignment.RIGHT -> PdfViewer.PageAlignMode.DEFAULT
+                    PageAlignment.CENTER_BOTH -> PdfViewer.PageAlignMode.CENTER_BOTH
+                }
+                pdfViewer?.pageAlignMode = alignMode
                 // Persist to global settings
                 viewModelScope.launch {
                     val domainAlignment = when (action.alignment) {
                         PageAlignment.LEFT -> DomainPageAlignment.LEFT
                         PageAlignment.CENTER -> DomainPageAlignment.CENTER
                         PageAlignment.RIGHT -> DomainPageAlignment.RIGHT
+                        PageAlignment.CENTER_BOTH -> DomainPageAlignment.CENTER_BOTH
                     }
                     preferencesRepository.setReaderPageAlignment(domainAlignment)
                 }
