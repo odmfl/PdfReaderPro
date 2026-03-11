@@ -306,6 +306,7 @@ fun ReaderScreen(
             factory = { ctx ->
                 PdfViewer(ctx).apply {
                     setBackgroundColor(backgroundColorArgb)
+                    defaultPageScale = PdfViewer.Zoom.PAGE_FIT.floatValue
 
                     // Set up print adapter
                     pdfPrintAdapter = DefaultPdfPrintAdapter(ctx).also {
