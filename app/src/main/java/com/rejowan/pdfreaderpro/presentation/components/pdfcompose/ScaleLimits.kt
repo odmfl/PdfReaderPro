@@ -15,9 +15,9 @@ import com.rejowan.pdfreaderpro.presentation.components.pdf.PdfViewer.Zoom
  * @see com.rejowan.pdfreaderpro.presentation.components.pdf.PdfViewerView.Zoom
  */
 data class ScaleLimit(
-    @param:FloatRange(-4.0, 10.0) val minPageScale: Float = 0.1f,
-    @param:FloatRange(-4.0, 10.0) val maxPageScale: Float = 10f,
-    @param:FloatRange(-4.0, 10.0) val defaultPageScale: Float = Zoom.AUTOMATIC.floatValue,
+    @param:FloatRange(-5.0, 10.0) val minPageScale: Float = 0.1f,
+    @param:FloatRange(-5.0, 10.0) val maxPageScale: Float = 10f,
+    @param:FloatRange(-5.0, 10.0) val defaultPageScale: Float = Zoom.AUTOMATIC.floatValue,
 )
 
 /**

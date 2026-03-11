@@ -521,6 +521,7 @@ class PdfViewer @JvmOverloads constructor(
      *   - `Zoom.PAGE_FIT.floatValue` (`-2f`): Fits the entire page within the view.
      *   - `Zoom.PAGE_WIDTH.floatValue` (`-3f`): Fits the width of the page within the view.
      *   - `Zoom.ACTUAL_SIZE.floatValue` (`-4f`): Sets the default scale to 100% (actual size).
+     *   - `Zoom.PAGE_BOTH.floatValue` (`-5f`): Scales to show two pages side-by-side.
      *
      * The default value is `Zoom.AUTOMATIC.floatValue` (`-1f`).
      *
@@ -533,7 +534,7 @@ class PdfViewer @JvmOverloads constructor(
      * @see actualDefaultPageScale
      * @see Zoom
      */
-    @FloatRange(from = -4.0, to = 10.0)
+    @FloatRange(from = -5.0, to = 10.0)
     var minPageScale = 0.1f
         set(value) {
             field = value
@@ -560,6 +561,7 @@ class PdfViewer @JvmOverloads constructor(
      *   - `Zoom.PAGE_FIT.floatValue` (`-2f`): Fits the entire page within the view.
      *   - `Zoom.PAGE_WIDTH.floatValue` (`-3f`): Fits the width of the page within the view.
      *   - `Zoom.ACTUAL_SIZE.floatValue` (`-4f`): Sets the maximum scale to 100% (actual size).
+     *   - `Zoom.PAGE_BOTH.floatValue` (`-5f`): Scales to show two pages side-by-side.
      *
      * The default value is `0.1f`.
      *
@@ -571,7 +573,7 @@ class PdfViewer @JvmOverloads constructor(
      * @see actualMaxPageScale
      * @see Zoom
      */
-    @FloatRange(from = -4.0, to = 10.0)
+    @FloatRange(from = -5.0, to = 10.0)
     var maxPageScale = 10f
         set(value) {
             if (field != value)
@@ -598,6 +600,7 @@ class PdfViewer @JvmOverloads constructor(
      *   - `Zoom.PAGE_FIT.floatValue` (`-2f`): Fits the entire page within the view.
      *   - `Zoom.PAGE_WIDTH.floatValue` (`-3f`): Fits the width of the page within the view.
      *   - `Zoom.ACTUAL_SIZE.floatValue` (`-4f`): Sets the default scale to 100% (actual size).
+     *   - `Zoom.PAGE_BOTH.floatValue` (`-5f`): Scales to show two pages side-by-side.
      *
      * The default value is `0.1f`.
      *
@@ -609,7 +612,7 @@ class PdfViewer @JvmOverloads constructor(
      * @see actualDefaultPageScale
      * @see Zoom
      */
-    @FloatRange(from = -4.0, to = 10.0)
+    @FloatRange(from = -5.0, to = 10.0)
     var defaultPageScale = Zoom.AUTOMATIC.floatValue
         set(value) {
             if (field != value)
@@ -1313,16 +1316,17 @@ class PdfViewer @JvmOverloads constructor(
      *     - `Zoom.PAGE_FIT.floatValue` (`-2f`): Fits the entire page within the view.
      *     - `Zoom.PAGE_WIDTH.floatValue` (`-3f`): Fits the width of the page within the view.
      *     - `Zoom.ACTUAL_SIZE.floatValue` (`-4f`): Sets the zoom to 100% (actual size).
+     *     - `Zoom.PAGE_BOTH.floatValue` (`-5f`): Scales to show two pages side-by-side.
      *
      * @param scale The desired zoom scale. It can be a direct float value (e.g., `1.0f` for 100%) or
      *              a negative constant from [Zoom] (e.g., `Zoom.PAGE_FIT.floatValue`). The accepted
-     *              range for this parameter is from -4.0 to 10.0.
+     *              range for this parameter is from -5.0 to 10.0.
      *
      * @see zoomIn
      * @see zoomOut
      * @see zoomTo
      */
-    fun scalePageTo(@FloatRange(from = -4.0, to = 10.0) scale: Float) {
+    fun scalePageTo(@FloatRange(from = -5.0, to = 10.0) scale: Float) {
         if (scale in ZOOM_SCALE_RANGE)
             zoomTo(Zoom.entries[abs(scale.toInt()) - 1])
         else {
@@ -2086,7 +2090,12 @@ class PdfViewer @JvmOverloads constructor(
         /**
          * Displays the page at its actual size (100% scale), without any scaling.
          */
-        ACTUAL_SIZE("page-actual", -4f)
+        ACTUAL_SIZE("page-actual", -4f),
+
+        /**
+         * Scales the page to show two pages side-by-side within the viewport width.
+         */
+        PAGE_BOTH("page-both", -5f)
     }
 
     /**
@@ -2277,7 +2286,7 @@ class PdfViewer @JvmOverloads constructor(
         internal const val PDF_VIEWER_URL =
             "https://${ResourceLoader.RESOURCE_DOMAIN}${PdfViewerResourceLoader.PATH}com/rejowan/mozilla/pdfjs/pdf_viewer.html"
         private const val COLOR_NOT_FOUND = 11
-        private val ZOOM_SCALE_RANGE = -4f..-1f
+        private val ZOOM_SCALE_RANGE = -5f..-1f
 
         /**
          * Controls suppression of WebView console logs.

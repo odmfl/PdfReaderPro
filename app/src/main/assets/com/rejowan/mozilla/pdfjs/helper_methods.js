@@ -540,6 +540,9 @@ function getActualScaleFor(value) {
         case "page-fit":
             scale = Math.min(pageWidthScale, pageHeightScale);
             break;
+        case "page-both":
+            scale = pageWidthScale / 2;
+            break;
         case "auto":
             const horizontalScale = isPortraitOrientation(currentPage) ? pageWidthScale : Math.min(pageHeightScale, pageWidthScale);
             scale = Math.min(MAX_AUTO_SCALE, horizontalScale);

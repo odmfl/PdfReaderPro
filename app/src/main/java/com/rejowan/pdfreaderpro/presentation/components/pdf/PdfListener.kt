@@ -280,9 +280,9 @@ interface PdfListener {
      * @param defaultPageScale The default page scale, in range -4.0 to 10.0.
      */
     fun onScaleLimitChange(
-        @FloatRange(-4.0, 10.0) minPageScale: Float,
-        @FloatRange(-4.0, 10.0) maxPageScale: Float,
-        @FloatRange(-4.0, 10.0) defaultPageScale: Float
+        @FloatRange(-5.0, 10.0) minPageScale: Float,
+        @FloatRange(-5.0, 10.0) maxPageScale: Float,
+        @FloatRange(-5.0, 10.0) defaultPageScale: Float
     ) {
     }
 
