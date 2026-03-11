@@ -82,7 +82,8 @@ class ReaderViewModel(
                     readingTheme = mapDomainReadingTheme(prefs.readerTheme),
                     pageAlignment = mapDomainPageAlignment(prefs.readerPageAlignment),
                     autoHideToolbar = prefs.readerAutoHideToolbar,
-                    keepScreenOn = prefs.readerKeepScreenOn
+                    keepScreenOn = prefs.readerKeepScreenOn,
+                    isSnapEnabled = prefs.readerSnapEnabled
                 )
             }
         }
@@ -153,9 +154,10 @@ class ReaderViewModel(
                 viewer.singlePageArrangement = true
                 // scrollSpeedLimit stays ScrollSpeedLimit.None (default) → no scroll speed limit
 
-                // Enable snap to page by default
-                viewer.snapPage = true
-                _state.update { it.copy(isSnapEnabled = true) }
+                // Apply snap to page from saved preference (defaults to true)
+                val snapEnabled = prefs.readerSnapEnabled
+                viewer.snapPage = snapEnabled
+                _state.update { it.copy(isSnapEnabled = snapEnabled) }
 
                 // Apply reading theme
                 val themeName = when (prefs.readerTheme) {
@@ -494,6 +496,9 @@ class ReaderViewModel(
             is ReaderAction.SetSnapEnabled -> {
                 _state.update { it.copy(isSnapEnabled = action.enabled) }
                 pdfViewer?.snapPage = action.enabled
+                viewModelScope.launch {
+                    preferencesRepository.setReaderSnapEnabled(action.enabled)
+                }
             }
             is ReaderAction.SetKeepScreenOn -> {
                 _state.update { it.copy(keepScreenOn = action.enabled) }

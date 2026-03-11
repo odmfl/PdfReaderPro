@@ -33,4 +33,5 @@ interface PreferencesRepository {
     suspend fun setReaderQuickZoomPreset(preset: QuickZoomPreset)
     suspend fun setReaderKeepScreenOn(enabled: Boolean)
     suspend fun setReaderTheme(theme: ReadingTheme)
+    suspend fun setReaderSnapEnabled(enabled: Boolean)
 }

@@ -43,6 +43,7 @@ class PreferencesRepositoryTest {
     private val readerQuickZoomPresetKey = stringPreferencesKey("reader_quick_zoom_preset")
     private val readerKeepScreenOnKey = booleanPreferencesKey("reader_keep_screen_on")
     private val readerThemeKey = stringPreferencesKey("reader_theme")
+    private val readerSnapEnabledKey = booleanPreferencesKey("reader_snap_enabled")
 
     @Before
     fun setup() {
@@ -75,6 +76,7 @@ class PreferencesRepositoryTest {
             assertEquals(QuickZoomPreset.FIT_WIDTH, prefs.readerQuickZoomPreset)
             assertFalse(prefs.readerKeepScreenOn)
             assertEquals(ReadingTheme.LIGHT, prefs.readerTheme)
+            assertTrue(prefs.readerSnapEnabled)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -95,7 +97,8 @@ class PreferencesRepositoryTest {
             readerAutoHideToolbarKey to true,
             readerQuickZoomPresetKey to QuickZoomPreset.ACTUAL_SIZE.name,
             readerKeepScreenOnKey to true,
-            readerThemeKey to ReadingTheme.SEPIA.name
+            readerThemeKey to ReadingTheme.SEPIA.name,
+            readerSnapEnabledKey to false
         )
         repository = createRepository(storedPrefs)
 
@@ -115,6 +118,7 @@ class PreferencesRepositoryTest {
             assertEquals(QuickZoomPreset.ACTUAL_SIZE, prefs.readerQuickZoomPreset)
             assertTrue(prefs.readerKeepScreenOn)
             assertEquals(ReadingTheme.SEPIA, prefs.readerTheme)
+            assertFalse(prefs.readerSnapEnabled)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -399,6 +403,20 @@ class PreferencesRepositoryTest {
     fun `setReaderTheme with BLACK does not throw`() = runTest {
         repository = createRepository()
         repository.setReaderTheme(ReadingTheme.BLACK)
+    }
+    // endregion
+
+    // region setReaderSnapEnabled Tests
+    @Test
+    fun `setReaderSnapEnabled with true does not throw`() = runTest {
+        repository = createRepository()
+        repository.setReaderSnapEnabled(true)
+    }
+
+    @Test
+    fun `setReaderSnapEnabled with false does not throw`() = runTest {
+        repository = createRepository()
+        repository.setReaderSnapEnabled(false)
     }
     // endregion
 

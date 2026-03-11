@@ -43,6 +43,7 @@ class PreferencesRepositoryImpl(
         val READER_QUICK_ZOOM_PRESET = stringPreferencesKey("reader_quick_zoom_preset")
         val READER_KEEP_SCREEN_ON = booleanPreferencesKey("reader_keep_screen_on")
         val READER_THEME = stringPreferencesKey("reader_theme")
+        val READER_SNAP_ENABLED = booleanPreferencesKey("reader_snap_enabled")
     }
 
     override val preferences: Flow<AppPreferences> = dataStore.data.map { prefs ->
@@ -64,7 +65,8 @@ class PreferencesRepositoryImpl(
             readerAutoHideToolbar = prefs[Keys.READER_AUTO_HIDE_TOOLBAR] ?: false,
             readerQuickZoomPreset = prefs[Keys.READER_QUICK_ZOOM_PRESET]?.let { QuickZoomPreset.valueOf(it) } ?: QuickZoomPreset.FIT_WIDTH,
             readerKeepScreenOn = prefs[Keys.READER_KEEP_SCREEN_ON] ?: false,
-            readerTheme = prefs[Keys.READER_THEME]?.let { ReadingTheme.valueOf(it) } ?: ReadingTheme.LIGHT
+            readerTheme = prefs[Keys.READER_THEME]?.let { ReadingTheme.valueOf(it) } ?: ReadingTheme.LIGHT,
+            readerSnapEnabled = prefs[Keys.READER_SNAP_ENABLED] ?: true
         )
     }
 
@@ -128,5 +130,9 @@ class PreferencesRepositoryImpl(
 
     override suspend fun setReaderTheme(theme: ReadingTheme) {
         dataStore.edit { it[Keys.READER_THEME] = theme.name }
+    }
+
+    override suspend fun setReaderSnapEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.READER_SNAP_ENABLED] = enabled }
     }
 }
