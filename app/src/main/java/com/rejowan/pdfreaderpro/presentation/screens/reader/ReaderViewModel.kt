@@ -149,6 +149,10 @@ class ReaderViewModel(
                 }
                 viewer.pageScrollMode = scrollMode
 
+                // Enable single-page arrangement by default (free scroll disabled)
+                viewer.singlePageArrangement = true
+                // scrollSpeedLimit stays ScrollSpeedLimit.None (default) → no scroll speed limit
+
                 // Apply reading theme
                 val themeName = when (prefs.readerTheme) {
                     DomainReadingTheme.LIGHT -> "light"
@@ -463,6 +467,8 @@ class ReaderViewModel(
                     ScrollDirection.HORIZONTAL -> PdfViewer.PageScrollMode.HORIZONTAL
                 }
                 pdfViewer?.pageScrollMode = scrollMode
+                // Re-apply single-page arrangement after direction change (pageScrollMode setter resets it)
+                pdfViewer?.singlePageArrangement = true
                 // Persist to global settings
                 viewModelScope.launch {
                     val domainDirection = when (action.direction) {
