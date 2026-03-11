@@ -1784,7 +1784,11 @@ class PdfViewer @JvmOverloads constructor(
                     PageScrollMode.VERTICAL, PageScrollMode.WRAPPED -> webView callDirectly "enableVerticalSnapBehavior"()
                     else -> {}
                 }
-            } else webView callDirectly "removeSnapBehavior"()
+                webView callDirectly "limitScroll"(100, 0.5, true, false)
+            } else {
+                webView callDirectly "removeSnapBehavior"()
+                if (!singlePageArrangement) webView callDirectly "removeScrollLimit"()
+            }
         }
     }
 
@@ -1952,7 +1956,7 @@ class PdfViewer @JvmOverloads constructor(
             dispatchToListener = dispatchToListener,
             callListener = { onScrollSpeedLimitChange(scrollSpeedLimit, it) }
         ) {
-            if (!singlePageArrangement) {
+            if (!singlePageArrangement && !snapPage) {
                 webView callDirectly "removeScrollLimit"()
                 return@dispatch ScrollSpeedLimit.None
             }

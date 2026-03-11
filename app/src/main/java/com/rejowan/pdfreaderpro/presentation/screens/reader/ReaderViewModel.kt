@@ -153,6 +153,10 @@ class ReaderViewModel(
                 viewer.singlePageArrangement = true
                 // scrollSpeedLimit stays ScrollSpeedLimit.None (default) → no scroll speed limit
 
+                // Enable snap to page by default
+                viewer.snapPage = true
+                _state.update { it.copy(isSnapEnabled = true) }
+
                 // Apply reading theme
                 val themeName = when (prefs.readerTheme) {
                     DomainReadingTheme.LIGHT -> "light"
