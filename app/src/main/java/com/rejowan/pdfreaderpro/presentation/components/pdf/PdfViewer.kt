@@ -1994,13 +1994,17 @@ class PdfViewer @JvmOverloads constructor(
 
         when (scrollMode) {
             PageScrollMode.VERTICAL, PageScrollMode.WRAPPED -> {
-                if (pageAlignMode == PageAlignMode.CENTER_VERTICAL || pageAlignMode == PageAlignMode.CENTER_BOTH)
-                    pageAlignMode = PageAlignMode.DEFAULT
+                if (!singlePageArrangement) {
+                    if (pageAlignMode == PageAlignMode.CENTER_VERTICAL || pageAlignMode == PageAlignMode.CENTER_BOTH)
+                        pageAlignMode = PageAlignMode.DEFAULT
+                }
             }
 
             PageScrollMode.HORIZONTAL -> {
-                if (pageAlignMode == PageAlignMode.CENTER_HORIZONTAL || pageAlignMode == PageAlignMode.CENTER_BOTH)
-                    pageAlignMode = PageAlignMode.DEFAULT
+                if (!singlePageArrangement) {
+                    if (pageAlignMode == PageAlignMode.CENTER_HORIZONTAL || pageAlignMode == PageAlignMode.CENTER_BOTH)
+                        pageAlignMode = PageAlignMode.DEFAULT
+                }
             }
 
             PageScrollMode.SINGLE_PAGE -> {
