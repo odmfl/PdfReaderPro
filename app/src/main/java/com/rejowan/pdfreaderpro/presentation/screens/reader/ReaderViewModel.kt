@@ -170,7 +170,7 @@ class ReaderViewModel(
                 // Apply page alignment
                 val alignMode = when (prefs.readerPageAlignment) {
                     DomainPageAlignment.LEFT -> PdfViewer.PageAlignMode.DEFAULT
-                    DomainPageAlignment.CENTER -> PdfViewer.PageAlignMode.CENTER_HORIZONTAL
+                    DomainPageAlignment.CENTER -> PdfViewer.PageAlignMode.CENTER_BOTH
                     DomainPageAlignment.RIGHT -> PdfViewer.PageAlignMode.DEFAULT
                     DomainPageAlignment.CENTER_BOTH -> PdfViewer.PageAlignMode.CENTER_BOTH
                 }
@@ -537,7 +537,7 @@ class ReaderViewModel(
                 _state.update { it.copy(pageAlignment = action.alignment) }
                 val alignMode = when (action.alignment) {
                     PageAlignment.LEFT -> PdfViewer.PageAlignMode.DEFAULT
-                    PageAlignment.CENTER -> PdfViewer.PageAlignMode.CENTER_HORIZONTAL
+                    PageAlignment.CENTER -> PdfViewer.PageAlignMode.CENTER_BOTH
                     PageAlignment.RIGHT -> PdfViewer.PageAlignMode.DEFAULT
                     PageAlignment.CENTER_BOTH -> PdfViewer.PageAlignMode.CENTER_BOTH
                 }
