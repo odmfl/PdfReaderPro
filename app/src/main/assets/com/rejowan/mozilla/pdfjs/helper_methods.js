@@ -641,67 +641,73 @@ function removeSinglePageArrangement() {
 }
 
 // #region snap / one-page-swipe
-// When snap is enabled every swipe fires exactly the same KeyboardEvent that
-// the physical arrow keys produce.  pdf.js already handles those perfectly,
-// so we get identical, correct single-page navigation for free.
+// When snap is enabled, touchmove is fully blocked via preventDefault() and
+// touchend navigates exactly 1 page using PDFViewerApplication.pdfViewer.nextPage() /
+// previousPage() — no scroll manipulation, no KeyboardEvent side-effects.
 
 function enableOnePageSwipe() {
     if (!viewerContainer || viewerContainer._swipeHandler) return;
 
     let startX = 0;
     let startY = 0;
+    let isSwiping = false;
 
     function onTouchStart(e) {
-        if (e.touches.length !== 1) return;
+        if (e.touches.length !== 1) {
+            isSwiping = false;
+            return;
+        }
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
+        isSwiping = true;
+    }
+
+    function onTouchMove(e) {
+        // Block ALL native scrolling while snap is active
+        if (isSwiping) {
+            e.preventDefault();
+        }
     }
 
     function onTouchEnd(e) {
+        if (!isSwiping) return;
+        isSwiping = false;
         if (e.changedTouches.length !== 1) return;
 
         const dx = startX - e.changedTouches[0].clientX;
         const dy = startY - e.changedTouches[0].clientY;
 
-        // Ignore accidental micro-taps
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        // Ignore micro-taps (less than 15px in both axes)
+        if (Math.abs(dx) < 15 && Math.abs(dy) < 15) return;
 
         const isHorizontal = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.HORIZONTAL;
         const isVertical   = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.VERTICAL ||
                              PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.WRAPPED;
 
-        let key = null;
         if (isHorizontal && Math.abs(dx) >= Math.abs(dy)) {
-            key = dx > 0 ? "ArrowRight" : "ArrowLeft";
+            // swipe left → next page, swipe right → previous page
+            if (dx > 0) PDFViewerApplication.pdfViewer.nextPage();
+            else        PDFViewerApplication.pdfViewer.previousPage();
         } else if (isVertical && Math.abs(dy) >= Math.abs(dx)) {
-            key = dy > 0 ? "ArrowDown" : "ArrowUp";
+            // swipe up → next page, swipe down → previous page
+            if (dy > 0) PDFViewerApplication.pdfViewer.nextPage();
+            else        PDFViewerApplication.pdfViewer.previousPage();
         }
-
-        if (!key) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Dispatch exactly the same keyboard event pdf.js uses for arrow navigation
-        const keyEvent = new KeyboardEvent("keydown", {
-            key:        key,
-            code:       key,
-            bubbles:    true,
-            cancelable: true,
-        });
-        window.dispatchEvent(keyEvent);
     }
 
-    viewerContainer.addEventListener("touchstart", onTouchStart, { passive: true });
+    // CRITICAL: all three listeners must be passive:false so we can call preventDefault()
+    viewerContainer.addEventListener("touchstart", onTouchStart, { passive: false });
+    viewerContainer.addEventListener("touchmove",  onTouchMove,  { passive: false });
     viewerContainer.addEventListener("touchend",   onTouchEnd,   { passive: false });
 
-    viewerContainer._swipeHandler = { onTouchStart, onTouchEnd };
+    viewerContainer._swipeHandler = { onTouchStart, onTouchMove, onTouchEnd };
 }
 
 function disableOnePageSwipe() {
     if (!viewerContainer || !viewerContainer._swipeHandler) return;
-    const { onTouchStart, onTouchEnd } = viewerContainer._swipeHandler;
+    const { onTouchStart, onTouchMove, onTouchEnd } = viewerContainer._swipeHandler;
     viewerContainer.removeEventListener("touchstart", onTouchStart);
+    viewerContainer.removeEventListener("touchmove",  onTouchMove);
     viewerContainer.removeEventListener("touchend",   onTouchEnd);
     delete viewerContainer._swipeHandler;
 }
