@@ -1784,9 +1784,10 @@ class PdfViewer @JvmOverloads constructor(
                     PageScrollMode.VERTICAL, PageScrollMode.WRAPPED -> webView callDirectly "enableVerticalSnapBehavior"()
                     else -> {}
                 }
-                webView callDirectly "limitScroll"(100, 0.5, true, false)
+                webView callDirectly "enableOnePageSwipe"()
             } else {
                 webView callDirectly "removeSnapBehavior"()
+                webView callDirectly "disableOnePageSwipe"()
                 if (!singlePageArrangement) webView callDirectly "removeScrollLimit"()
             }
         }
