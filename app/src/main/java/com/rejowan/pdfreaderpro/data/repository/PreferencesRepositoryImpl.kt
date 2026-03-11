@@ -58,7 +58,7 @@ class PreferencesRepositoryImpl(
 
             // Reader settings
             readerBrightness = prefs[Keys.READER_BRIGHTNESS] ?: -1f,
-            readerScrollDirection = prefs[Keys.READER_SCROLL_DIRECTION]?.let { ScrollDirection.valueOf(it) } ?: ScrollDirection.VERTICAL,
+            readerScrollDirection = prefs[Keys.READER_SCROLL_DIRECTION]?.let { ScrollDirection.valueOf(it) } ?: ScrollDirection.HORIZONTAL,
             readerPageLayout = prefs[Keys.READER_PAGE_LAYOUT]?.let { PageLayout.valueOf(it) } ?: PageLayout.CONTINUOUS,
             readerPageAlignment = prefs[Keys.READER_PAGE_ALIGNMENT]?.let { PageAlignment.valueOf(it) } ?: PageAlignment.CENTER,
             readerAutoHideToolbar = prefs[Keys.READER_AUTO_HIDE_TOOLBAR] ?: false,
