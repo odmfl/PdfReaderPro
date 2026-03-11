@@ -26,7 +26,7 @@ data class ReaderState(
     val maxZoom: Float = 5f,
     val scrollDirection: ScrollDirection = ScrollDirection.HORIZONTAL,
     val spreadMode: SpreadMode = SpreadMode.NONE,
-    val isSnapEnabled: Boolean = false,
+    val isSnapEnabled: Boolean = true,
 
     // UI visibility
     val isToolbarVisible: Boolean = true,
