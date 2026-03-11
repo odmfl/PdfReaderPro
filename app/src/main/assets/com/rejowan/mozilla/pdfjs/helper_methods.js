@@ -587,27 +587,6 @@ function scrollToRatio(ratio, isHorizontalScroll) {
     }
 }
 
-function enableVerticalSnapBehavior() {
-    viewerContainer.classList.remove("horizontal-snap");
-    viewerContainer.classList.add("vertical-snap");
-    viewerContainer.style.scrollSnapType = "y mandatory";
-    viewerContainer._originalScrollSnapType = "y mandatory";
-}
-
-function enableHorizontalSnapBehavior() {
-    viewerContainer.classList.remove("vertical-snap");
-    viewerContainer.classList.add("horizontal-snap");
-    viewerContainer.style.scrollSnapType = "x mandatory";
-    viewerContainer._originalScrollSnapType = "x mandatory";
-}
-
-function removeSnapBehavior() {
-    viewerContainer.classList.remove("vertical-snap");
-    viewerContainer.classList.remove("horizontal-snap");
-    viewerContainer.style.scrollSnapType = "none";
-    viewerContainer._originalScrollSnapType = "none";
-}
-
 function centerPage(vertical, horizontal, singlePageArrangemenentEnabled = false) {
     if (singlePageArrangemenentEnabled) {
         viewerContainer.classList.add("single-page-arrangement");
@@ -661,510 +640,80 @@ function removeSinglePageArrangement() {
     });
 }
 
-function limitScroll(maxSpeed = 100, flingThreshold = 0.5, canFling = false, adaptiveFling = false) {
-    if (!viewerContainer) return;
+// #region snap / one-page-swipe
+// When snap is enabled every swipe fires exactly the same KeyboardEvent that
+// the physical arrow keys produce.  pdf.js already handles those perfectly,
+// so we get identical, correct single-page navigation for free.
 
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-    let lastTouchTime = 0;
-    let accumulatedDeltaX = 0;
-    let accumulatedDeltaY = 0;
-    let restoreTimer;
-    let isDragging = false;
-
-    viewerContainer._originalScrollSnapType = window.getComputedStyle(viewerContainer).scrollSnapType;
-
-    const disableSnap = () => {
-        viewerContainer.style.scrollSnapType = "none";
-        if (restoreTimer) clearTimeout(restoreTimer);
-    };
-
-    const restoreSnap = () => {
-        viewerContainer.style.scrollSnapType = viewerContainer._originalScrollSnapType;
-    };
-
-    const clamp = (value, max) => Math.max(-max, Math.min(value, max));
-
-    const touchStartHandler = (event) => {
-        if (event.touches.length > 1) return;
-
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-        lastTouchX = touchStartX;
-        lastTouchY = touchStartY;
-        lastTouchTime = event.timeStamp;
-        PDFViewerApplication._touchStartCurrentPage = PDFViewerApplication.page;
-
-        accumulatedDeltaX = 0;
-        accumulatedDeltaY = 0;
-        isDragging = false;
-
-        disableSnap();
-    };
-
-    const touchMoveHandler = (event) => {
-        if (event.touches.length > 1) return;
-
-        const touch = event.touches[0];
-        const currentTouchX = touch.clientX;
-        const currentTouchY = touch.clientY;
-
-        let deltaX = lastTouchX - currentTouchX;
-        let deltaY = lastTouchY - currentTouchY;
-
-        deltaX = clamp(deltaX, maxSpeed);
-        deltaY = clamp(deltaY, maxSpeed);
-        if (!isDragging && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
-            isDragging = true;
-        }
-
-        viewerContainer.scrollLeft += deltaX;
-        viewerContainer.scrollTop += deltaY;
-
-        accumulatedDeltaX += deltaX;
-        accumulatedDeltaY += deltaY;
-
-        lastTouchX = currentTouchX;
-        lastTouchY = currentTouchY;
-
-        event.preventDefault();
-    };
-
-    const touchEndHandler = (event) => {
-        if (!isDragging) return;
-
-        const touchEndTime = event.timeStamp;
-        const timeElapsed = Math.max(touchEndTime - lastTouchTime, 1);
-        // Instantaneous velocity (pixels/ms)
-        const velocityX = accumulatedDeltaX / timeElapsed;
-        const velocityY = accumulatedDeltaY / timeElapsed;
-
-        // Total gesture displacement from start
-        // totalDeltaX > 0 → swipe left (forward in horizontal mode)
-        // totalDeltaY > 0 → swipe up   (forward in vertical mode)
-        const totalDeltaX = touchStartX - lastTouchX;
-        const totalDeltaY = touchStartY - lastTouchY;
-
-        const isVerticalScroll   = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.VERTICAL;
-        const isHorizontalScroll = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.HORIZONTAL;
-
-        const containerHeight = viewerContainer.clientHeight;
-        const containerWidth  = viewerContainer.clientWidth;
-
-        let targetPage = PDFViewerApplication.pdfViewer.getPageView(
-            PDFViewerApplication._touchStartCurrentPage - 1
-        );
-        const pageHeight = targetPage.div.clientHeight;
-        const pageWidth  = targetPage.div.clientWidth;
-
-        const canFlingPage = adaptiveFling
-            ? (pageWidth < containerWidth || pageHeight < containerHeight)
-            : canFling;
-
-        event.preventDefault();
-
-        // ─── HORIZONTAL MODE ─────────────────────────────────────────────────
-        // Identical behaviour to ArrowRight / ArrowLeft keys
-        if (isHorizontalScroll) {
-            const absVX = Math.abs(velocityX);
-            const absVY = Math.abs(velocityY);
-
-            if (absVX >= absVY) {
-                if (canFlingPage && absVX > flingThreshold) {
-                    // velocityX > 0 → swipe left  → next page     (= ArrowRight)
-                    // velocityX < 0 → swipe right → previous page (= ArrowLeft)
-                    if (velocityX > 0) setScrollToNextPage();
-                    else               setScrollToPreviousPage();
-                    return;
-                }
-                // Position threshold: > 20% of container width → change page
-                const threshold = containerWidth * 0.2;
-                if (totalDeltaX > threshold) {
-                    setScrollToNextPage();
-                } else if (totalDeltaX < -threshold) {
-                    setScrollToPreviousPage();
-                } else {
-                    setScrollToCurrentPage();
-                    restoreTimer = setTimeout(restoreSnap, 500);
-                }
-            } else {
-                // Predominantly vertical gesture ignored in horizontal mode
-                setScrollToCurrentPage();
-                restoreTimer = setTimeout(restoreSnap, 500);
-            }
-            return;
-        }
-
-        // ─── VERTICAL MODE ───────────────────────────────────────────────────
-        // Identical behaviour to ArrowDown / ArrowUp keys
-        if (isVerticalScroll) {
-            const absVX = Math.abs(velocityX);
-            const absVY = Math.abs(velocityY);
-
-            if (absVY >= absVX) {
-                if (canFlingPage && absVY > flingThreshold) {
-                    // velocityY > 0 → swipe up   → next page     (= ArrowDown)
-                    // velocityY < 0 → swipe down → previous page (= ArrowUp)
-                    if (velocityY > 0) setScrollToNextPage();
-                    else               setScrollToPreviousPage();
-                    return;
-                }
-                // Position threshold: > 20% of container height → change page
-                const threshold = containerHeight * 0.2;
-                if (totalDeltaY > threshold) {
-                    setScrollToNextPage();
-                } else if (totalDeltaY < -threshold) {
-                    setScrollToPreviousPage();
-                } else {
-                    setScrollToCurrentPage();
-                    restoreTimer = setTimeout(restoreSnap, 500);
-                }
-            } else {
-                // Predominantly horizontal gesture ignored in vertical mode
-                setScrollToCurrentPage();
-                restoreTimer = setTimeout(restoreSnap, 500);
-            }
-            return;
-        }
-
-        // ─── OTHER MODES (PAGE, WRAPPED, etc.) ───────────────────────────────
-        setScrollToCurrentPage();
-        restoreTimer = setTimeout(restoreSnap, 500);
-    };
-
-    const resizeAndScaleListener = () => {
-        setScrollToCurrentPage();
-    };
-
-    viewerContainer.addEventListener("touchstart", touchStartHandler);
-    viewerContainer.addEventListener("touchmove", touchMoveHandler, { passive: false });
-    viewerContainer.addEventListener("touchend", touchEndHandler, { passive: false });
-    window.addEventListener("resize", resizeAndScaleListener);
-    PDFViewerApplication.eventBus.on("scalechanging", resizeAndScaleListener);
-
-    viewerContainer._scrollHandlers = {
-        touchStartHandler,
-        touchMoveHandler,
-        touchEndHandler,
-        resizeAndScaleListener,
-    };
-}
-
-function removeScrollLimit() {
-    if (!viewerContainer || !viewerContainer._scrollHandlers) return;
-
-    const { touchStartHandler, touchMoveHandler, touchEndHandler, resizeAndScaleListener } = viewerContainer._scrollHandlers;
-
-    viewerContainer.removeEventListener("touchstart", touchStartHandler);
-    viewerContainer.removeEventListener("touchmove", touchMoveHandler);
-    viewerContainer.removeEventListener("touchend", touchEndHandler);
-    window.removeEventListener("resize", resizeAndScaleListener);
-    PDFViewerApplication.eventBus.off("scalechanging", resizeAndScaleListener);
-
-    viewerContainer.style.scrollSnapType = viewerContainer._originalScrollSnapType;
-
-    delete viewerContainer._scrollHandlers;
-}
-
-// Installs a one-page-at-a-time swipe handler.
-// During touchmove the scroll is clamped so it can never exceed the adjacent
-// page boundary. On touchend, ANY swipe (> 10 px or velocity > 0.1 px/ms)
-// navigates exactly 1 page in the swipe direction, identical to the arrow keys.
-// The reference page is always PDFViewerApplication.page at touch-end time.
 function enableOnePageSwipe() {
-    if (!viewerContainer) return;
+    if (!viewerContainer || viewerContainer._swipeHandler) return;
 
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let startScrollLeft = 0;
-    let startScrollTop = 0;
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-    let lastTouchTime = 0;
-    let isDragging = false;
-    let restoreTimer = null;
+    let startX = 0;
+    let startY = 0;
 
-    viewerContainer._originalScrollSnapType = window.getComputedStyle(viewerContainer).scrollSnapType;
+    function onTouchStart(e) {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    }
 
-    const disableSnap = () => {
-        viewerContainer.style.scrollSnapType = "none";
-        if (restoreTimer) clearTimeout(restoreTimer);
-    };
+    function onTouchEnd(e) {
+        if (e.changedTouches.length !== 1) return;
 
-    const restoreSnap = () => {
-        viewerContainer.style.scrollSnapType = viewerContainer._originalScrollSnapType;
-    };
+        const dx = startX - e.changedTouches[0].clientX;
+        const dy = startY - e.changedTouches[0].clientY;
 
-    const touchStartHandler = (event) => {
-        if (event.touches.length > 1) return;
+        // Ignore accidental micro-taps
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
 
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-        lastTouchX = touchStartX;
-        lastTouchY = touchStartY;
-        lastTouchTime = event.timeStamp;
-        startScrollLeft = viewerContainer.scrollLeft;
-        startScrollTop = viewerContainer.scrollTop;
-        isDragging = false;
-        PDFViewerApplication._touchStartCurrentPage = PDFViewerApplication.page;
+        const isHorizontal = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.HORIZONTAL;
+        const isVertical   = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.VERTICAL ||
+                             PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.WRAPPED;
 
-        disableSnap();
-    };
-
-    const touchMoveHandler = (event) => {
-        if (event.touches.length > 1) return;
-
-        const touch = event.touches[0];
-        const currentTouchX = touch.clientX;
-        const currentTouchY = touch.clientY;
-
-        const isHorizontalScroll = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.HORIZONTAL;
-        const isVerticalScroll   = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.VERTICAL;
-
-        const containerHeight = viewerContainer.clientHeight;
-        const containerWidth  = viewerContainer.clientWidth;
-
-        // Compute delta from the gesture start (not from the last frame)
-        const totalDeltaX = touchStartX - currentTouchX;
-        const totalDeltaY = touchStartY - currentTouchY;
-
-        if (!isDragging && (Math.abs(totalDeltaX) > 5 || Math.abs(totalDeltaY) > 5)) {
-            isDragging = true;
+        let key = null;
+        if (isHorizontal && Math.abs(dx) >= Math.abs(dy)) {
+            key = dx > 0 ? "ArrowRight" : "ArrowLeft";
+        } else if (isVertical && Math.abs(dy) >= Math.abs(dx)) {
+            key = dy > 0 ? "ArrowDown" : "ArrowUp";
         }
 
-        if (isHorizontalScroll) {
-            // Clamp scrollLeft: cannot go beyond ±1 page-width from start position
-            viewerContainer.scrollLeft = Math.max(
-                startScrollLeft - containerWidth,
-                Math.min(startScrollLeft + containerWidth, startScrollLeft + totalDeltaX)
-            );
-        } else if (isVerticalScroll) {
-            // Clamp scrollTop: cannot go beyond ±1 page-height from start position
-            viewerContainer.scrollTop = Math.max(
-                startScrollTop - containerHeight,
-                Math.min(startScrollTop + containerHeight, startScrollTop + totalDeltaY)
-            );
-        }
+        if (!key) return;
 
-        lastTouchX = currentTouchX;
-        lastTouchY = currentTouchY;
+        e.preventDefault();
+        e.stopPropagation();
 
-        event.preventDefault();
-    };
+        // Dispatch exactly the same keyboard event pdf.js uses for arrow navigation
+        const keyEvent = new KeyboardEvent("keydown", {
+            key:        key,
+            code:       key,
+            bubbles:    true,
+            cancelable: true,
+        });
+        window.dispatchEvent(keyEvent);
+    }
 
-    const touchEndHandler = (event) => {
-        if (!isDragging) return;
+    viewerContainer.addEventListener("touchstart", onTouchStart, { passive: true });
+    viewerContainer.addEventListener("touchend",   onTouchEnd,   { passive: false });
 
-        const touchEndTime = event.timeStamp;
-        const timeElapsed = Math.max(touchEndTime - lastTouchTime, 1);
-
-        // Total finger displacement from gesture start
-        const totalDeltaX = touchStartX - lastTouchX;
-        const totalDeltaY = touchStartY - lastTouchY;
-
-        // Average velocity over the gesture
-        const velocityX = totalDeltaX / timeElapsed;
-        const velocityY = totalDeltaY / timeElapsed;
-
-        const isVerticalScroll   = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.VERTICAL;
-        const isHorizontalScroll = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.HORIZONTAL;
-
-        // Use the page at the moment of release as the reference, not _touchStartCurrentPage
-        const currentPage = PDFViewerApplication.page;
-        const totalPages  = PDFViewerApplication.pdfViewer.pagesCount;
-        PDFViewerApplication._touchStartCurrentPage = currentPage;
-
-        event.preventDefault();
-
-        const goToNextPage = () => {
-            if (currentPage < totalPages) setScrollToNextPage();
-            else setScrollToCurrentPage();
-            restoreTimer = setTimeout(restoreSnap, 500);
-        };
-
-        const goToPrevPage = () => {
-            if (currentPage > 1) setScrollToPreviousPage();
-            else setScrollToCurrentPage();
-            restoreTimer = setTimeout(restoreSnap, 500);
-        };
-
-        const stayOnPage = () => {
-            setScrollToCurrentPage();
-            restoreTimer = setTimeout(restoreSnap, 500);
-        };
-
-        if (isHorizontalScroll) {
-            if (Math.abs(totalDeltaX) >= Math.abs(totalDeltaY)) {
-                // Navigate on any intentional swipe (> 10 px or velocity > 0.1 px/ms)
-                if (Math.abs(totalDeltaX) > 10 || Math.abs(velocityX) > 0.1) {
-                    if (totalDeltaX > 0) goToNextPage();
-                    else goToPrevPage();
-                } else stayOnPage();
-            } else stayOnPage();
-            return;
-        }
-
-        if (isVerticalScroll) {
-            if (Math.abs(totalDeltaY) >= Math.abs(totalDeltaX)) {
-                // Navigate on any intentional swipe (> 10 px or velocity > 0.1 px/ms)
-                if (Math.abs(totalDeltaY) > 10 || Math.abs(velocityY) > 0.1) {
-                    if (totalDeltaY > 0) goToNextPage();
-                    else goToPrevPage();
-                } else stayOnPage();
-            } else stayOnPage();
-            return;
-        }
-
-        stayOnPage();
-    };
-
-    const resizeAndScaleListener = () => {
-        setScrollToCurrentPage();
-    };
-
-    viewerContainer.addEventListener("touchstart", touchStartHandler);
-    viewerContainer.addEventListener("touchmove", touchMoveHandler, { passive: false });
-    viewerContainer.addEventListener("touchend", touchEndHandler, { passive: false });
-    window.addEventListener("resize", resizeAndScaleListener);
-    PDFViewerApplication.eventBus.on("scalechanging", resizeAndScaleListener);
-
-    viewerContainer._onePageSwipeHandlers = {
-        touchStartHandler,
-        touchMoveHandler,
-        touchEndHandler,
-        resizeAndScaleListener,
-        clearTimer: () => { if (restoreTimer) { clearTimeout(restoreTimer); restoreTimer = null; } },
-    };
+    viewerContainer._swipeHandler = { onTouchStart, onTouchEnd };
 }
 
 function disableOnePageSwipe() {
-    if (!viewerContainer || !viewerContainer._onePageSwipeHandlers) return;
-
-    const { touchStartHandler, touchMoveHandler, touchEndHandler, resizeAndScaleListener, clearTimer } = viewerContainer._onePageSwipeHandlers;
-
-    if (clearTimer) clearTimer();
-    viewerContainer.removeEventListener("touchstart", touchStartHandler);
-    viewerContainer.removeEventListener("touchmove", touchMoveHandler);
-    viewerContainer.removeEventListener("touchend", touchEndHandler);
-    window.removeEventListener("resize", resizeAndScaleListener);
-    PDFViewerApplication.eventBus.off("scalechanging", resizeAndScaleListener);
-
-    viewerContainer.style.scrollSnapType = viewerContainer._originalScrollSnapType;
-
-    delete viewerContainer._onePageSwipeHandlers;
+    if (!viewerContainer || !viewerContainer._swipeHandler) return;
+    const { onTouchStart, onTouchEnd } = viewerContainer._swipeHandler;
+    viewerContainer.removeEventListener("touchstart", onTouchStart);
+    viewerContainer.removeEventListener("touchend",   onTouchEnd);
+    delete viewerContainer._swipeHandler;
 }
 
-function setScrollToPreviousPage() {
-    setScrollToPage(PDFViewerApplication.pdfViewer.getPageView(PDFViewerApplication._touchStartCurrentPage - 2), true);
-}
+// No-op stubs kept so that any existing Kotlin call-sites compile without changes
+function limitScroll()  {}
+function removeScrollLimit() {}
+function enableVerticalSnapBehavior() {}
+function enableHorizontalSnapBehavior() {}
+function removeSnapBehavior() {}
+// #endregion snap / one-page-swipe
 
-function setScrollToNextPage() {
-    setScrollToPage(PDFViewerApplication.pdfViewer.getPageView(PDFViewerApplication._touchStartCurrentPage));
-}
-
-function setScrollToCurrentPage() {
-    let targetPage = PDFViewerApplication.pdfViewer.getPageView(PDFViewerApplication._touchStartCurrentPage - 1);
-
-    const isVerticalScroll = PDFViewerApplication.pdfViewer.scrollMode == ScrollMode.VERTICAL;
-    const isHorizontalScroll = PDFViewerApplication.pdfViewer.scrollMode == ScrollMode.HORIZONTAL;
-
-    if (!targetPage || !viewerContainer) return;
-
-    const containerHeight = viewerContainer.clientHeight;
-    const containerWidth = viewerContainer.clientWidth;
-
-    const pageHeight = targetPage.div.clientHeight;
-    const pageWidth = targetPage.div.clientWidth;
-
-    const currentScrollTop = viewerContainer.scrollTop;
-    const currentScrollLeft = viewerContainer.scrollLeft;
-
-    let targetOffsetTop, targetOffsetLeft;
-
-    if (pageHeight >= containerHeight || pageWidth >= containerWidth) {
-        if (isVerticalScroll) {
-            let canChange = currentScrollTop < targetPage.div.offsetTop || currentScrollTop + containerHeight > PDFViewerApplication.pdfViewer.getPageView(PDFViewerApplication._touchStartCurrentPage)?.div?.offsetTop || 0;
-            if (pageHeight > containerHeight && canChange) targetOffsetTop = nearest(currentScrollTop, targetPage.div.offsetTop, targetPage.div.offsetTop + pageHeight - containerHeight);
-            else if (pageWidth > containerWidth && canChange) targetOffsetTop = targetPage.div.offsetTop - Math.abs(containerHeight - pageHeight) / 2;
-            else targetOffsetTop = currentScrollTop;
-        } else targetOffsetTop = currentScrollTop;
-        if (isHorizontalScroll) {
-            let canChange = currentScrollLeft < targetPage.div.offsetLeft || currentScrollLeft + containerWidth > PDFViewerApplication.pdfViewer.getPageView(PDFViewerApplication._touchStartCurrentPage)?.div?.offsetLeft || 0;
-            if (pageWidth > containerWidth && canChange) targetOffsetLeft = nearest(currentScrollLeft, targetPage.div.offsetLeft, targetPage.div.offsetLeft + pageWidth - containerWidth);
-            else if (pageHeight > containerHeight && canChange) targetOffsetLeft = targetPage.div.offsetLeft - Math.abs(containerWidth - pageWidth) / 2;
-            else targetOffsetLeft = currentScrollLeft;
-        } else targetOffsetLeft = currentScrollLeft;
-    } else {
-        targetOffsetLeft = targetPage.div.offsetLeft - (targetPage.div.parentElement.clientWidth - targetPage.div.clientWidth) / 2;
-        targetOffsetTop = targetPage.div.offsetTop - (targetPage.div.parentElement.clientHeight - targetPage.div.clientHeight) / 2;
-    }
-
-    smoothScrollTo(viewerContainer, targetOffsetTop, targetOffsetLeft);
-}
-
-function setScrollToPage(targetPage, goToEnd = false) {
-    const containerHeight = viewerContainer.clientHeight;
-    const containerWidth = viewerContainer.clientWidth;
-
-    const pageHeight = targetPage.div.clientHeight;
-    const pageWidth = targetPage.div.clientWidth;
-
-    let targetOffsetTop, targetOffsetLeft;
-
-    if (pageHeight >= containerHeight || pageWidth >= containerWidth) {
-        const currentScrollTop = viewerContainer.scrollTop;
-        const currentScrollLeft = viewerContainer.scrollLeft;
-        const isVerticalScroll = PDFViewerApplication.pdfViewer.scrollMode == ScrollMode.VERTICAL;
-        const isHorizontalScroll = PDFViewerApplication.pdfViewer.scrollMode == ScrollMode.HORIZONTAL;
-
-        if (isVerticalScroll) targetOffsetLeft = currentScrollLeft;
-        else {
-            if (goToEnd) targetOffsetLeft = targetPage.div.offsetLeft + targetPage.div.clientWidth - containerWidth;
-            else targetOffsetLeft = targetPage.div.offsetLeft;
-        }
-        if (isHorizontalScroll) targetOffsetTop = currentScrollTop;
-        else {
-            if (goToEnd) targetOffsetTop = targetPage.div.offsetTop + targetPage.div.clientHeight - containerHeight;
-            else targetOffsetTop = targetPage.div.offsetTop;
-        }
-    } else {
-        targetOffsetLeft = targetPage.div.offsetLeft - (targetPage.div.parentElement.clientWidth - targetPage.div.clientWidth) / 2;
-        targetOffsetTop = targetPage.div.offsetTop - (targetPage.div.parentElement.clientHeight - targetPage.div.clientHeight) / 2;
-    }
-
-    smoothScrollTo(viewerContainer, targetOffsetTop, targetOffsetLeft);
-}
-
-function smoothScrollTo(container, targetScrollTop, targetScrollLeft, duration = 250) {
-    let startScrollLeft = container.scrollLeft;
-    let startScrollTop = container.scrollTop;
-    const distanceLeft = targetScrollLeft - startScrollLeft;
-    const distanceTop = targetScrollTop - startScrollTop + 8.5;
-    const startTime = performance.now();
-
-    function step(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeInOutQuad = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
-        container.scrollLeft = startScrollLeft + distanceLeft * easeInOutQuad;
-        container.scrollTop = startScrollTop + distanceTop * easeInOutQuad;
-
-        if (progress < 1) {
-            requestAnimationFrame(step);
-        }
-    }
-
-    requestAnimationFrame(step);
-}
-
-function nearest(currentPoint, point1, point2) {
-    if (Math.abs(currentPoint - point1) < Math.abs(currentPoint - point2)) {
-        return point1;
-    } else return point2;
-}
 
 function setTextSelectionColor(color) {
     viewer.style.setProperty('--selection-color', color);
