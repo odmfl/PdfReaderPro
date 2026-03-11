@@ -1779,16 +1779,9 @@ class PdfViewer @JvmOverloads constructor(
             callListener = { onSnapChange(snapPage) }
         ) {
             if (snapPage) {
-                when (pageScrollMode) {
-                    PageScrollMode.HORIZONTAL -> webView callDirectly "enableHorizontalSnapBehavior"()
-                    PageScrollMode.VERTICAL, PageScrollMode.WRAPPED -> webView callDirectly "enableVerticalSnapBehavior"()
-                    else -> {}
-                }
                 webView callDirectly "enableOnePageSwipe"()
             } else {
-                webView callDirectly "removeSnapBehavior"()
                 webView callDirectly "disableOnePageSwipe"()
-                if (!singlePageArrangement) webView callDirectly "removeScrollLimit"()
             }
         }
     }
