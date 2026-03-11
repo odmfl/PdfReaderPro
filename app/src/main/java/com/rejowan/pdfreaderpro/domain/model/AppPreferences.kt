@@ -18,8 +18,7 @@ data class AppPreferences(
     val readerAutoHideToolbar: Boolean = false,
     val readerQuickZoomPreset: QuickZoomPreset = QuickZoomPreset.FIT_WIDTH,
     val readerKeepScreenOn: Boolean = false,
-    val readerTheme: ReadingTheme = ReadingTheme.LIGHT,
-    val readerSnapEnabled: Boolean = true
+    val readerTheme: ReadingTheme = ReadingTheme.LIGHT
 )
 
 enum class ThemeMode {
