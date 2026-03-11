@@ -641,9 +641,10 @@ function removeSinglePageArrangement() {
 }
 
 // #region snap / one-page-swipe
-// When snap is enabled, touchmove is fully blocked via preventDefault() and
+// When snap is enabled and at default zoom: touchmove is blocked via preventDefault() and
 // touchend navigates exactly 1 page using PDFViewerApplication.pdfViewer.nextPage() /
 // previousPage() — no scroll manipulation, no KeyboardEvent side-effects.
+// When zoomed in: native scroll is allowed freely so the user can pan within the page.
 
 function enableOnePageSwipe() {
     if (!viewerContainer || viewerContainer._swipeHandler) return;
@@ -651,6 +652,17 @@ function enableOnePageSwipe() {
     let startX = 0;
     let startY = 0;
     let isSwiping = false;
+
+    // Returns true if the viewer is at (or very close to) the default/fit zoom level.
+    // Uses a relative tolerance (1%) plus an absolute tolerance (0.01) to handle
+    // floating-point imprecision where the scale may be stored as e.g. 0.8000001 instead of 0.8.
+    function isAtDefaultZoom() {
+        const current = PDFViewerApplication.pdfViewer.currentScale;
+        const def     = PDFViewerApplication.pdfViewer.defaultScale;
+        const relativeTolerance = 0.01; // 1%
+        const absoluteTolerance = 0.01;
+        return current <= def * (1 + relativeTolerance) + absoluteTolerance;
+    }
 
     function onTouchStart(e) {
         if (e.touches.length !== 1) {
@@ -663,21 +675,25 @@ function enableOnePageSwipe() {
     }
 
     function onTouchMove(e) {
-        // Block ALL native scrolling while snap is active
-        if (isSwiping) {
+        if (!isSwiping) return;
+        // Only block native scroll when at default zoom.
+        // When zoomed in, let the browser handle the scroll naturally.
+        if (isAtDefaultZoom()) {
             e.preventDefault();
         }
     }
 
     function onTouchEnd(e) {
-        if (!isSwiping) return;
+        if (!isSwiping || e.changedTouches.length !== 1) return;
         isSwiping = false;
-        if (e.changedTouches.length !== 1) return;
+
+        // When zoomed in, the native scroll already handled panning — do nothing.
+        if (!isAtDefaultZoom()) return;
 
         const dx = startX - e.changedTouches[0].clientX;
         const dy = startY - e.changedTouches[0].clientY;
 
-        // Ignore micro-taps (less than 15px in both axes)
+        // Ignore micro-taps
         if (Math.abs(dx) < 15 && Math.abs(dy) < 15) return;
 
         const isHorizontal = PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.HORIZONTAL;
@@ -685,17 +701,15 @@ function enableOnePageSwipe() {
                              PDFViewerApplication.pdfViewer.scrollMode === ScrollMode.WRAPPED;
 
         if (isHorizontal && Math.abs(dx) >= Math.abs(dy)) {
-            // swipe left → next page, swipe right → previous page
             if (dx > 0) PDFViewerApplication.pdfViewer.nextPage();
             else        PDFViewerApplication.pdfViewer.previousPage();
         } else if (isVertical && Math.abs(dy) >= Math.abs(dx)) {
-            // swipe up → next page, swipe down → previous page
             if (dy > 0) PDFViewerApplication.pdfViewer.nextPage();
             else        PDFViewerApplication.pdfViewer.previousPage();
         }
     }
 
-    // CRITICAL: all three listeners must be passive:false so we can call preventDefault()
+    // All three listeners must be passive:false so we can call preventDefault()
     viewerContainer.addEventListener("touchstart", onTouchStart, { passive: false });
     viewerContainer.addEventListener("touchmove",  onTouchMove,  { passive: false });
     viewerContainer.addEventListener("touchend",   onTouchEnd,   { passive: false });
