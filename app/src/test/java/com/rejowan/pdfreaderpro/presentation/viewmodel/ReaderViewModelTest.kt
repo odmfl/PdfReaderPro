@@ -12,6 +12,8 @@ import com.rejowan.pdfreaderpro.domain.model.PdfFile
 import com.rejowan.pdfreaderpro.domain.repository.FavoriteRepository
 import com.rejowan.pdfreaderpro.domain.repository.PreferencesRepository
 import com.rejowan.pdfreaderpro.domain.repository.RecentRepository
+import com.rejowan.pdfreaderpro.domain.model.PageAlignment as DomainPageAlignment
+import com.rejowan.pdfreaderpro.presentation.screens.reader.PageAlignment
 import com.rejowan.pdfreaderpro.presentation.screens.reader.ReaderAction
 import com.rejowan.pdfreaderpro.presentation.screens.reader.ReaderEvent
 import com.rejowan.pdfreaderpro.presentation.screens.reader.ReaderViewModel
@@ -329,6 +331,54 @@ class ReaderViewModelTest {
 
         assertTrue(viewModel.state.value.keepScreenOn)
         coVerify { preferencesRepository.setReaderKeepScreenOn(true) }
+    }
+
+    @Test
+    fun `set page alignment CENTER updates state and persists`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderAction.SetPageAlignment(PageAlignment.CENTER))
+        advanceUntilIdle()
+
+        assertEquals(PageAlignment.CENTER, viewModel.state.value.pageAlignment)
+        coVerify { preferencesRepository.setReaderPageAlignment(DomainPageAlignment.CENTER) }
+    }
+
+    @Test
+    fun `set page alignment LEFT updates state and persists`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderAction.SetPageAlignment(PageAlignment.LEFT))
+        advanceUntilIdle()
+
+        assertEquals(PageAlignment.LEFT, viewModel.state.value.pageAlignment)
+        coVerify { preferencesRepository.setReaderPageAlignment(DomainPageAlignment.LEFT) }
+    }
+
+    @Test
+    fun `set page alignment RIGHT updates state and persists`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderAction.SetPageAlignment(PageAlignment.RIGHT))
+        advanceUntilIdle()
+
+        assertEquals(PageAlignment.RIGHT, viewModel.state.value.pageAlignment)
+        coVerify { preferencesRepository.setReaderPageAlignment(DomainPageAlignment.RIGHT) }
+    }
+
+    @Test
+    fun `set page alignment CENTER_BOTH updates state and persists`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAction(ReaderAction.SetPageAlignment(PageAlignment.CENTER_BOTH))
+        advanceUntilIdle()
+
+        assertEquals(PageAlignment.CENTER_BOTH, viewModel.state.value.pageAlignment)
+        coVerify { preferencesRepository.setReaderPageAlignment(DomainPageAlignment.CENTER_BOTH) }
     }
     // endregion
 
